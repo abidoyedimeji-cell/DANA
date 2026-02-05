@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useState } from "react"
 import {
   Dialog,
   DialogContent,
@@ -16,226 +16,42 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { useSupabaseClient } from "@/lib/supabase/use-supabase-client"
-import { confirmDanaBooking, createDanaHold, getDanaIntersection } from "@/shared/api/availability"
-import {
-  createDateRequest,
-  getDateRequestById,
-  markInviterPaid,
-} from "@/shared/api/date-requests"
-import type { DanaEvent, DanaHold, DanaIntersectionWindow, Venue } from "@/shared/types"
 
 interface InviteModalProps {
   open: boolean
   onClose: () => void
 }
 
+const venues = [
+  { id: "1", name: "The Blue Lounge", location: "Shoreditch" },
+  { id: "2", name: "Ember & Oak", location: "Mayfair" },
+  { id: "3", name: "Café Botanica", location: "Notting Hill" },
+  { id: "4", name: "The Rooftop", location: "Canary Wharf" },
+]
+
 type Step = "select-person" | "select-venue" | "select-time" | "payment" | "confirmation"
 
 export function InviteModal({ open, onClose }: InviteModalProps) {
-  const supabase = useSupabaseClient()
   const [step, setStep] = useState<Step>("select-person")
   const [selectedPerson] = useState({ name: "Sophie", image: "/professional-woman-smiling.png" })
-  const [guestId, setGuestId] = useState("")
   const [selectedVenue, setSelectedVenue] = useState("")
-  const [selectedTimeSlot, setSelectedTimeSlot] = useState("")
+  const [selectedDate, setSelectedDate] = useState("")
+  const [selectedTime, setSelectedTime] = useState("")
   const [isProcessing, setIsProcessing] = useState(false)
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
-  const [venues, setVenues] = useState<Venue[]>([])
-  const [venuesError, setVenuesError] = useState<string | null>(null)
-  const [intersectionWindows, setIntersectionWindows] = useState<DanaIntersectionWindow[]>([])
-  const [intersectionError, setIntersectionError] = useState<string | null>(null)
-  const [activeHold, setActiveHold] = useState<DanaHold | null>(null)
-  const [confirmedEvent, setConfirmedEvent] = useState<DanaEvent | null>(null)
-  const [actionError, setActionError] = useState<string | null>(null)
-  const [dateInviteId, setDateInviteId] = useState<string | null>(null)
-  const [inviterPaid, setInviterPaid] = useState(false)
-  const [inviteePaid, setInviteePaid] = useState(false)
 
-  useEffect(() => {
-    let isMounted = true
-    supabase.auth.getUser().then(({ data }) => {
-      if (!isMounted) return
-      setCurrentUserId(data.user?.id ?? null)
-    })
-    return () => {
-      isMounted = false
-    }
-  }, [supabase])
-
-  useEffect(() => {
-    let isMounted = true
-    setVenuesError(null)
-    supabase
-      .from("venues")
-      .select("id,name,description,location,address,city,image_url,category,price_range,rating,is_partner,promo_text,created_at")
-      .not("exclusive_window", "is", null)
-      .then(({ data, error }) => {
-        if (!isMounted) return
-        if (error) {
-          setVenuesError(error.message)
-          setVenues([])
-          return
-        }
-        setVenues((data ?? []) as Venue[])
-      })
-    return () => {
-      isMounted = false
-    }
-  }, [supabase])
-
-  useEffect(() => {
-    if (!currentUserId || !guestId || !selectedVenue) {
-      setIntersectionWindows([])
-      setIntersectionError(null)
-      return
-    }
-    let isMounted = true
-    setIntersectionError(null)
-    getDanaIntersection(supabase, {
-      host_id: currentUserId,
-      guest_id: guestId,
-      venue_id: selectedVenue,
-      meeting_duration: "90 minutes",
-    })
-      .then((data) => {
-        if (!isMounted) return
-        setIntersectionWindows(data)
-      })
-      .catch((err) => {
-        if (!isMounted) return
-        setIntersectionError(err?.message ?? "Unable to calculate availability")
-        setIntersectionWindows([])
-      })
-    return () => {
-      isMounted = false
-    }
-  }, [currentUserId, guestId, selectedVenue, supabase])
-
-  const selectedWindowLabel = useMemo(() => {
-    const range = parseTstzRange(selectedTimeSlot)
-    if (!range) return ""
-    return formatMeetingWindow(range.start, range.end)
-  }, [selectedTimeSlot])
-
-  /** Map TSTZRANGE start to proposed_date (YYYY-MM-DD) and proposed_time (HH:MM). */
-  const timeSlotToProposed = useCallback((timeSlot: string) => {
-    const range = parseTstzRange(timeSlot)
-    if (!range) return null
-    const start = range.start
-    const proposed_date = start.toISOString().slice(0, 10)
-    const proposed_time = start.toISOString().slice(11, 16)
-    return { proposed_date, proposed_time }
-  }, [])
-
-  /** When entering payment step, create date_invite if not yet created. */
-  const ensureDateInviteAndGoToPayment = useCallback(async () => {
-    if (!currentUserId || !guestId || !selectedVenue || !selectedTimeSlot) return
-    const proposed = timeSlotToProposed(selectedTimeSlot)
-    if (!proposed) return
+  const handlePayment = async () => {
     setIsProcessing(true)
-    setActionError(null)
-    try {
-      if (dateInviteId) {
-        setStep("payment")
-        return
-      }
-      const invite = await createDateRequest(supabase, currentUserId, {
-        invitee_id: guestId,
-        venue_id: selectedVenue,
-        proposed_date: proposed.proposed_date,
-        proposed_time: proposed.proposed_time,
-      })
-      setDateInviteId(invite.id)
-      setInviterPaid(!!invite.inviter_paid)
-      setInviteePaid(!!invite.invitee_paid)
-      setStep("payment")
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to create invite."
-      setActionError(message)
-    } finally {
-      setIsProcessing(false)
-    }
-  }, [
-    currentUserId,
-    guestId,
-    selectedVenue,
-    selectedTimeSlot,
-    dateInviteId,
-    timeSlotToProposed,
-    supabase,
-  ])
-
-  /** Poll invite for payment status when on payment step. */
-  useEffect(() => {
-    if (step !== "payment" || !dateInviteId) return
-    const t = setInterval(() => {
-      getDateRequestById(supabase, dateInviteId).then((inv) => {
-        if (inv) {
-          setInviterPaid(!!inv.inviter_paid)
-          setInviteePaid(!!inv.invitee_paid)
-        }
-      })
-    }, 3000)
-    return () => clearInterval(t)
-  }, [step, dateInviteId, supabase])
-
-  const handleInviterPay = async () => {
-    if (!dateInviteId) return
-    setIsProcessing(true)
-    setActionError(null)
-    try {
-      await markInviterPaid(supabase, dateInviteId)
-      setInviterPaid(true)
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Payment failed."
-      setActionError(message)
-    } finally {
-      setIsProcessing(false)
-    }
-  }
-
-  const handleConfirmBooking = async () => {
-    if (!currentUserId || !guestId || !selectedVenue || !selectedTimeSlot || !dateInviteId) return
-    if (!inviterPaid || !inviteePaid) return
-    setIsProcessing(true)
-    setActionError(null)
-    try {
-      const hold =
-        activeHold ??
-        (await createDanaHold(supabase, {
-          host_id: currentUserId,
-          guest_id: guestId,
-          venue_id: selectedVenue,
-          time_slot: selectedTimeSlot,
-          meeting_duration: "90 minutes",
-          hold_ttl: "5 minutes",
-        }))
-      setActiveHold(hold)
-      const event = await confirmDanaBooking(supabase, hold.id, dateInviteId)
-      setConfirmedEvent(event)
-      setStep("confirmation")
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Unable to confirm booking."
-      setActionError(message)
-    } finally {
-      setIsProcessing(false)
-    }
+    // Simulate payment processing
+    await new Promise((resolve) => setTimeout(resolve, 2000))
+    setIsProcessing(false)
+    setStep("confirmation")
   }
 
   const handleClose = () => {
     setStep("select-person")
     setSelectedVenue("")
-    setSelectedTimeSlot("")
-    setGuestId("")
-    setActiveHold(null)
-    setConfirmedEvent(null)
-    setDateInviteId(null)
-    setInviterPaid(false)
-    setInviteePaid(false)
-    setIntersectionWindows([])
-    setIntersectionError(null)
-    setActionError(null)
+    setSelectedDate("")
+    setSelectedTime("")
     onClose()
   }
 
@@ -251,7 +67,7 @@ export function InviteModal({ open, onClose }: InviteModalProps) {
               <DialogDescription>You're about to invite someone to meet at a partner venue</DialogDescription>
             </DialogHeader>
 
-              <Card className="border-border">
+            <Card className="border-border">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
                   <img
@@ -270,15 +86,6 @@ export function InviteModal({ open, onClose }: InviteModalProps) {
                     Verified
                   </Badge>
                 </div>
-                  <div className="mt-4 space-y-2">
-                    <Label htmlFor="guest-id">Guest user ID</Label>
-                    <Input
-                      id="guest-id"
-                      placeholder="UUID for the guest"
-                      value={guestId}
-                      onChange={(e) => setGuestId(e.target.value)}
-                    />
-                  </div>
               </CardContent>
             </Card>
 
@@ -286,9 +93,7 @@ export function InviteModal({ open, onClose }: InviteModalProps) {
               <Button variant="outline" onClick={handleClose} className="bg-transparent">
                 Cancel
               </Button>
-              <Button onClick={() => setStep("select-venue")} disabled={!guestId}>
-                Continue
-              </Button>
+              <Button onClick={() => setStep("select-venue")}>Continue</Button>
             </DialogFooter>
           </>
         )}
@@ -309,15 +114,11 @@ export function InviteModal({ open, onClose }: InviteModalProps) {
                 <SelectContent>
                   {venues.map((venue) => (
                     <SelectItem key={venue.id} value={venue.id}>
-                      {venue.name} - {venue.location ?? venue.city ?? "Venue"}
+                      {venue.name} - {venue.location}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              {venuesError && <p className="text-sm text-destructive">{venuesError}</p>}
-              {!venuesError && venues.length === 0 && (
-                <p className="text-sm text-muted-foreground">No venues with availability windows yet.</p>
-              )}
             </div>
 
             <DialogFooter>
@@ -340,29 +141,29 @@ export function InviteModal({ open, onClose }: InviteModalProps) {
 
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="meeting-window">Available meeting windows</Label>
-                <Select value={selectedTimeSlot} onValueChange={setSelectedTimeSlot}>
-                  <SelectTrigger id="meeting-window">
-                    <SelectValue placeholder="Select a time window" />
+                <Label htmlFor="date">Date</Label>
+                <Input
+                  id="date"
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  min={new Date().toISOString().split("T")[0]}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="time">Time</Label>
+                <Select value={selectedTime} onValueChange={setSelectedTime}>
+                  <SelectTrigger id="time">
+                    <SelectValue placeholder="Select a time" />
                   </SelectTrigger>
                   <SelectContent>
-                    {intersectionWindows.map((window) => {
-                      const range = parseTstzRange(window.meeting_window)
-                      const label = range ? formatMeetingWindow(range.start, range.end) : window.meeting_window
-                      return (
-                        <SelectItem key={window.meeting_window} value={window.meeting_window}>
-                          {label}
-                        </SelectItem>
-                      )
-                    })}
+                    {["12:00", "12:30", "13:00", "18:00", "18:30", "19:00", "19:30", "20:00", "20:30"].map((time) => (
+                      <SelectItem key={time} value={time}>
+                        {time}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
-                {intersectionError && <p className="text-sm text-destructive">{intersectionError}</p>}
-                {!intersectionError && intersectionWindows.length === 0 && (
-                  <p className="text-sm text-muted-foreground">
-                    No overlapping availability found yet. Add availability blocks for both users and try again.
-                  </p>
-                )}
               </div>
             </div>
 
@@ -370,11 +171,8 @@ export function InviteModal({ open, onClose }: InviteModalProps) {
               <Button variant="outline" onClick={() => setStep("select-venue")} className="bg-transparent">
                 Back
               </Button>
-              <Button
-                onClick={ensureDateInviteAndGoToPayment}
-                disabled={!selectedTimeSlot || isProcessing}
-              >
-                {isProcessing ? "Creating invite..." : "Continue to Payment"}
+              <Button onClick={() => setStep("payment")} disabled={!selectedDate || !selectedTime}>
+                Continue to Payment
               </Button>
             </DialogFooter>
           </>
@@ -384,7 +182,7 @@ export function InviteModal({ open, onClose }: InviteModalProps) {
           <>
             <DialogHeader>
               <DialogTitle>Confirm & Pay</DialogTitle>
-              <DialogDescription>Review your booking and pay your deposit. Both must pay before confirming.</DialogDescription>
+              <DialogDescription>Review your booking and pay your deposit</DialogDescription>
             </DialogHeader>
 
             <Card className="border-border">
@@ -399,23 +197,23 @@ export function InviteModal({ open, onClose }: InviteModalProps) {
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Date & Time</span>
-                  <span className="font-medium">{selectedWindowLabel}</span>
+                  <span className="font-medium">
+                    {new Date(selectedDate).toLocaleDateString("en-GB", {
+                      weekday: "short",
+                      day: "numeric",
+                      month: "short",
+                    })}{" "}
+                    at {selectedTime}
+                  </span>
                 </div>
-                <div className="border-t pt-3 mt-3 flex justify-between items-center">
-                  <span className="text-sm">Your deposit</span>
-                  {inviterPaid ? (
-                    <Badge variant="secondary">Paid</Badge>
-                  ) : (
-                    <span className="font-medium">£5.00</span>
-                  )}
-                </div>
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>{selectedPerson.name} also pays £5.</span>
-                  {inviteePaid ? (
-                    <Badge variant="secondary" className="text-xs">Paid</Badge>
-                  ) : (
-                    <span>Awaiting their payment</span>
-                  )}
+                <div className="border-t pt-3 mt-3">
+                  <div className="flex justify-between font-medium">
+                    <span>Your deposit</span>
+                    <span>£5.00</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {selectedPerson.name} also pays £5. Total £10 goes towards your bill.
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -426,11 +224,9 @@ export function InviteModal({ open, onClose }: InviteModalProps) {
                 hours. No refund under 24 hours.
               </AlertDescription>
             </Alert>
-            {actionError && <p className="text-sm text-destructive">{actionError}</p>}
 
             <div className="space-y-2">
-              {!inviterPaid && (
-              <Button className="w-full" onClick={handleInviterPay} disabled={isProcessing}>
+              <Button className="w-full" onClick={handlePayment} disabled={isProcessing}>
                 {isProcessing ? (
                   <>
                     <svg className="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
@@ -455,31 +251,10 @@ export function InviteModal({ open, onClose }: InviteModalProps) {
                     <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z" />
                     </svg>
-                    Pay £5.00 (your deposit)
+                    Pay £5.00 with Card
                   </>
                 )}
               </Button>
-              )}
-              {inviterPaid && !inviteePaid && (
-                <p className="text-sm text-center text-muted-foreground">
-                  You&apos;ve paid. Waiting for {selectedPerson.name} to pay their £5. Confirm once they&apos;ve paid from their Bookings.
-                </p>
-              )}
-              {inviterPaid && inviteePaid && (
-                <Button className="w-full" onClick={handleConfirmBooking} disabled={isProcessing}>
-                  {isProcessing ? (
-                    <>
-                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                      </svg>
-                      Confirming...
-                    </>
-                  ) : (
-                    "Confirm booking"
-                  )}
-                </Button>
-              )}
               <div className="flex gap-2">
                 <Button variant="outline" className="flex-1 bg-transparent" disabled={isProcessing}>
                   <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
@@ -500,7 +275,7 @@ export function InviteModal({ open, onClose }: InviteModalProps) {
               </div>
             </div>
 
-            <Button variant="ghost" onClick={() => setStep("select-time")} className="w-full" disabled={!!dateInviteId}>
+            <Button variant="ghost" onClick={() => setStep("select-time")} className="w-full">
               Back
             </Button>
           </>
@@ -528,12 +303,22 @@ export function InviteModal({ open, onClose }: InviteModalProps) {
                   <span>{selectedVenueData?.name}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Date & Time</span>
-                  <span>{selectedWindowLabel}</span>
+                  <span className="text-muted-foreground">Date</span>
+                  <span>
+                    {new Date(selectedDate).toLocaleDateString("en-GB", {
+                      weekday: "short",
+                      day: "numeric",
+                      month: "short",
+                    })}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Time</span>
+                  <span>{selectedTime}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Status</span>
-                  <Badge variant="secondary">{confirmedEvent ? "Confirmed" : "Awaiting Confirmation"}</Badge>
+                  <Badge variant="secondary">Awaiting {selectedPerson.name}'s Payment</Badge>
                 </div>
               </CardContent>
             </Card>
@@ -550,28 +335,4 @@ export function InviteModal({ open, onClose }: InviteModalProps) {
       </DialogContent>
     </Dialog>
   )
-}
-
-function parseTstzRange(range: string): { start: Date; end: Date } | null {
-  if (!range) return null
-  const cleaned = range.replace(/[\[\]\(\)]/g, "")
-  const parts = cleaned.split(",")
-  if (parts.length < 2) return null
-  const startText = parts[0].replace(/"/g, "").trim()
-  const endText = parts[1].replace(/"/g, "").trim()
-  const start = new Date(startText)
-  const end = new Date(endText)
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return null
-  return { start, end }
-}
-
-function formatMeetingWindow(start: Date, end: Date): string {
-  const date = start.toLocaleDateString("en-GB", {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-  })
-  const startTime = start.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
-  const endTime = end.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
-  return `${date} · ${startTime} - ${endTime}`
 }

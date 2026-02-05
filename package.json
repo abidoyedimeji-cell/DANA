@@ -2,25 +2,13 @@
   "name": "my-v0-project",
   "version": "0.1.0",
   "private": true,
-  "packageManager": "pnpm@10.28.2",
   "scripts": {
     "build": "next build",
     "dev": "next dev",
-    "lint": "turbo run lint",
-    "start": "next start",
-    "mobile": "pnpm --filter mobile start",
-    "mobile:start": "pnpm --filter mobile exec expo start --clear",
-    "shared:build": "pnpm --filter shared build",
-    "setup": "pnpm install && pnpm shared:build && pnpm --filter mobile install",
-    "clean": "node scripts/clean.js",
-    "type-check": "turbo run type-check",
-    "doctor": "pnpm --filter mobile exec expo doctor",
-    "preflight": "pnpm type-check && pnpm lint && pnpm doctor",
-    "preflight:db": "tsx scripts/dana-preflight.ts",
-    "health-check": "tsx scripts/dana-preflight.ts"
+    "lint": "eslint .",
+    "start": "next start"
   },
   "dependencies": {
-    "@babel/runtime": "^7.28.6",
     "@hookform/resolvers": "^3.10.0",
     "@radix-ui/react-accordion": "1.2.2",
     "@radix-ui/react-alert-dialog": "1.1.4",
@@ -61,31 +49,25 @@
     "clsx": "^2.1.1",
     "cmdk": "1.0.4",
     "date-fns": "4.1.0",
-    "docx": "^9.5.0",
     "embla-carousel-react": "8.5.1",
     "input-otp": "1.4.1",
-    "jspdf": "^2.5.2",
-    "jspdf-autotable": "^3.8.3",
     "lucide-react": "^0.454.0",
     "next": "16.0.10",
     "next-auth": "^5.0.0-beta.25",
     "next-themes": "^0.4.6",
     "nodemailer": "latest",
-    "react": "19.1.0",
+    "react": "19.2.0",
     "react-day-picker": "9.8.0",
-    "react-dom": "19.1.0",
+    "react-dom": "19.2.0",
     "react-hook-form": "^7.60.0",
     "react-resizable-panels": "^2.1.7",
     "recharts": "2.15.4",
     "resend": "6.6.0",
-    "shared": "workspace:*",
     "sonner": "^1.7.4",
     "stripe": "20.1.0",
     "tailwind-merge": "^3.3.1",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^1.1.2",
-    "whatwg-fetch": "^3.6.20",
-    "xlsx": "^0.18.5",
     "zod": "3.25.76"
   },
   "devDependencies": {
@@ -95,16 +77,8 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "postcss": "^8.5",
-    "rimraf": "^6.0.1",
     "tailwindcss": "^4.1.9",
-    "tsx": "^4.19.2",
     "tw-animate-css": "1.3.3",
     "typescript": "^5"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "sharp",
-      "next"
-    ]
   }
 }

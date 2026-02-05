@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { createClient } from "@/lib/supabase/client"
-import { updateProfile } from "shared"
 import { Button } from "@/components/ui/button"
 import { Loader2, Edit2, MapPin, X, Check, LogIn, TrendingUp, Wallet, Settings, Calendar } from "lucide-react"
 import Link from "next/link"
@@ -13,11 +12,10 @@ export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [walletBalance, setWalletBalance] = useState<number>(0)
-  const [profileLoadFailed, setProfileLoadFailed] = useState(false)
   const [formData, setFormData] = useState({
     display_name: "",
     username: "",
-    bio_social: "",
+    bio: "",
     age: "",
     location: "",
     height: "",
@@ -28,21 +26,13 @@ export default function ProfilePage() {
       setFormData({
         display_name: profile.display_name || "",
         username: profile.username || "",
-        bio_social: (profile as any).bio_social || (profile as any).bio || "",
+        bio: profile.bio || "",
         age: profile.age?.toString() || "",
         location: profile.location || "",
         height: "",
       })
-      setProfileLoadFailed(false)
     }
   }, [profile])
-
-  // If user is set but profile is still null after a short delay, show refresh option
-  useEffect(() => {
-    if (!user || profile) return
-    const t = setTimeout(() => setProfileLoadFailed(true), 4000)
-    return () => clearTimeout(t)
-  }, [user, profile])
 
   useEffect(() => {
     if (user) {
@@ -53,10 +43,13 @@ export default function ProfilePage() {
   const fetchWalletBalance = async () => {
     try {
       const supabase = createClient()
-      const { data } = await supabase.from("wallets").select("balance").eq("user_id", user?.id).maybeSingle()
+      const { data } = await supabase.from("wallets").select("balance").eq("user_id", user?.id).single()
 
-      setWalletBalance(data?.balance ?? 0)
+      if (data) {
+        setWalletBalance(data.balance)
+      }
     } catch (error) {
+      // Wallet might not exist yet
       setWalletBalance(0)
     }
   }
@@ -69,39 +62,20 @@ export default function ProfilePage() {
       const supabase = createClient()
       console.log("[v0] Saving profile data:", formData)
 
-      // Use shared updateProfile function for validated fields
-      await updateProfile(supabase, user.id, {
-        display_name: formData.display_name || undefined,
-        bio_social: formData.bio_social || undefined,
-        location: formData.location || undefined,
-      })
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          display_name: formData.display_name,
+          username: formData.username,
+          bio: formData.bio,
+          age: Number.parseInt(formData.age) || null,
+          location: formData.location,
+        })
+        .eq("id", user.id)
 
-      // Handle username separately (not in shared schema yet, but needed for web)
-      // TODO: Add username to shared schema if needed
-      if (formData.username !== profile.username) {
-        const { error: usernameError } = await supabase
-          .from("profiles")
-          .update({ username: formData.username || null })
-          .eq("id", user.id)
-        
-        if (usernameError) {
-          console.error("[v0] Error updating username:", usernameError)
-          throw usernameError
-        }
-      }
-
-      // Handle age separately (not in shared schema yet)
-      // TODO: Add age to shared schema if needed
-      if (formData.age !== (profile.age?.toString() || "")) {
-        const { error: ageError } = await supabase
-          .from("profiles")
-          .update({ age: Number.parseInt(formData.age) || null })
-          .eq("id", user.id)
-        
-        if (ageError) {
-          console.error("[v0] Error updating age:", ageError)
-          throw ageError
-        }
+      if (error) {
+        console.error("[v0] Error saving profile:", error)
+        throw error
       }
 
       console.log("[v0] Profile saved successfully")
@@ -136,22 +110,8 @@ export default function ProfilePage() {
 
   if (!profile) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-6">
-        {!profileLoadFailed ? (
-          <Loader2 className="w-6 h-6 text-[#E91E8C] animate-spin" />
-        ) : (
-          <>
-            <p className="text-white/80 text-center mb-4">
-              Your profile didn&apos;t load. This can happen right after signup.
-            </p>
-            <Button
-              onClick={() => refreshProfile()}
-              className="bg-[#E91E8C] hover:bg-[#E91E8C]/90 text-white"
-            >
-              Retry
-            </Button>
-          </>
-        )}
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-6 h-6 text-[#E91E8C] animate-spin" />
       </div>
     )
   }
@@ -272,14 +232,14 @@ export default function ProfilePage() {
             <label className="text-white/60 text-sm mb-1 block">Bio</label>
             {isEditing ? (
               <textarea
-                value={formData.bio_social}
-                onChange={(e) => setFormData({ ...formData, bio_social: e.target.value })}
+                value={formData.bio}
+                onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
                 placeholder="Tell others about yourself..."
                 rows={4}
                 className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:border-[#E91E8C] focus:outline-none resize-none"
               />
             ) : (
-              <p className="text-white/80">{(profile as any).bio_social || (profile as any).bio || "No bio yet"}</p>
+              <p className="text-white/80">{profile.bio || "No bio yet"}</p>
             )}
           </div>
 

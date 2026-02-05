@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useAuth } from "@/lib/auth-context"
-import { COUNTRY_DIAL_CODES, toE164 } from "@/lib/constants/countryCodes"
 import { CheckCircle2, Mail, AlertCircle } from "lucide-react"
 
 interface SignupFormProps {
@@ -21,8 +20,7 @@ export function SignupForm({ onToggle }: SignupFormProps) {
     username: "",
     gender: "",
     email: "",
-    countryCode: "+44",
-    phoneNational: "",
+    phone: "",
     password: "",
   })
   const [isLoading, setIsLoading] = useState(false)
@@ -78,9 +76,7 @@ export function SignupForm({ onToggle }: SignupFormProps) {
       if (!formData.gender) throw new Error("Gender is required")
       if (!formData.email?.trim()) throw new Error("Email is required")
       if (!formData.email.includes("@")) throw new Error("Valid email is required")
-      const fullPhone = toE164(formData.countryCode, formData.phoneNational)
-      if (!formData.phoneNational?.trim()) throw new Error("Phone number is required")
-      if (!/^\+?[1-9]\d{1,14}$/.test(fullPhone)) throw new Error("Invalid phone number – use country code and number (e.g. 7911123456 for UK)")
+      if (!formData.phone?.trim()) throw new Error("Phone number is required")
       if (!formData.password) throw new Error("Password is required")
       if (formData.password.length < 6) throw new Error("Password must be at least 6 characters")
 
@@ -97,7 +93,7 @@ export function SignupForm({ onToggle }: SignupFormProps) {
             first_name: formData.firstName.trim(),
             username: formData.username.trim().toLowerCase(),
             gender: formData.gender,
-            ...(fullPhone ? { phone: fullPhone } : {}),
+            phone: formData.phone.trim(),
           },
         },
       })
@@ -267,36 +263,18 @@ export function SignupForm({ onToggle }: SignupFormProps) {
           </div>
 
           <div className="space-y-2">
-            <Label>Phone Number</Label>
-            <div className="flex gap-2">
-              <Select
-                value={formData.countryCode}
-                onValueChange={(value) => setFormData({ ...formData, countryCode: value })}
-                disabled={isLoading}
-              >
-                <SelectTrigger id="countryCode" className="border-white w-[130px] shrink-0">
-                  <SelectValue placeholder="Code" />
-                </SelectTrigger>
-                <SelectContent>
-                  {COUNTRY_DIAL_CODES.map(({ dialCode, label }) => (
-                    <SelectItem key={dialCode} value={dialCode}>
-                      {label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Input
-                id="phone"
-                type="tel"
-                placeholder="7911 123456"
-                value={formData.phoneNational}
-                onChange={(e) => setFormData({ ...formData, phoneNational: e.target.value })}
-                disabled={isLoading}
-                required
-                className="border-white flex-1"
-              />
-            </div>
-            <p className="text-xs text-muted-foreground">Select country code, then enter number without leading zero</p>
+            <Label htmlFor="phone">Phone Number</Label>
+            <Input
+              id="phone"
+              type="tel"
+              placeholder="+44 7XXX XXXXXX"
+              value={formData.phone}
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              disabled={isLoading}
+              required
+              className="border-white"
+            />
+            <p className="text-xs text-muted-foreground">Your unique identifier - must be valid and unique</p>
           </div>
 
           <div className="space-y-2">

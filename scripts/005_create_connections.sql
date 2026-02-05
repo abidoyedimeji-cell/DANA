@@ -13,10 +13,6 @@ CREATE TABLE IF NOT EXISTS public.connections (
 
 ALTER TABLE public.connections ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "connections_select_own" ON public.connections;
-DROP POLICY IF EXISTS "connections_insert_own" ON public.connections;
-DROP POLICY IF EXISTS "connections_update_relevant" ON public.connections;
-DROP POLICY IF EXISTS "connections_delete_own" ON public.connections;
 CREATE POLICY "connections_select_own" ON public.connections FOR SELECT 
   USING (auth.uid() = requester_id OR auth.uid() = receiver_id);
 CREATE POLICY "connections_insert_own" ON public.connections FOR INSERT 

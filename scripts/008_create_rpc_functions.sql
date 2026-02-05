@@ -1,5 +1,34 @@
--- RPC functions are defined in feature-specific scripts:
--- 013_dana_availability_and_booking.sql: get_dana_intersection, create_dana_hold, confirm_dana_booking, mark_inviter_paid, mark_invitee_paid
--- 014_venue_hours_booking_rules.sql: check_availability
--- 016_meet_form.sql: meet_form_window_open
--- 018_booking_swaps.sql: can_swap_booking, execute_booking_swap
+-- Helper functions for incrementing/decrementing counts
+
+CREATE OR REPLACE FUNCTION increment_post_likes(post_id UUID)
+RETURNS void
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  UPDATE community_posts 
+  SET likes_count = likes_count + 1 
+  WHERE id = post_id;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION decrement_post_likes(post_id UUID)
+RETURNS void
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  UPDATE community_posts 
+  SET likes_count = GREATEST(likes_count - 1, 0)
+  WHERE id = post_id;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION increment_post_comments(post_id UUID)
+RETURNS void
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  UPDATE community_posts 
+  SET comments_count = comments_count + 1 
+  WHERE id = post_id;
+END;
+$$;

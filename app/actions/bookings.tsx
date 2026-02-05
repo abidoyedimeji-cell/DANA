@@ -22,66 +22,32 @@ export async function acceptBooking(bookingId: string) {
   }
 
   try {
-    // #region agent log
-    fetch("http://127.0.0.1:7242/ingest/b3385bf6-370c-4ef0-a5e1-66fa28c0606b", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        location: "bookings.tsx:acceptBooking:entry",
-        message: "acceptBooking entry",
-        data: { bookingId, userId: user?.id },
-        timestamp: Date.now(),
-        sessionId: "debug-session",
-        hypothesisId: "H1",
-      }),
-    }).catch(() => {})
-    // #endregion
-
     // Validate input
     const validated = bookingActionSchema.parse({ bookingId, action: "accept" })
 
-    // Get booking details (inviter_id / invitee_id; no sender_id/recipient_id)
+    // Get booking details
     const { data: booking, error: bookingError } = await supabase
       .from("date_invites")
-      .select("*, inviter:profiles!inviter_id(*), invitee:profiles!invitee_id(*), venue:venues(*)")
+      .select("*, sender:profiles!sender_id(*), recipient:profiles!recipient_id(*), venue:venues(*)")
       .eq("id", validated.bookingId)
       .single()
-
-    // #region agent log
-    fetch("http://127.0.0.1:7242/ingest/b3385bf6-370c-4ef0-a5e1-66fa28c0606b", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        location: "bookings.tsx:after date_invites select",
-        message: "date_invites query result",
-        data: {
-          bookingErrorCode: bookingError?.code,
-          bookingErrorMessage: bookingError?.message,
-          hasBooking: !!booking,
-          hypothesisId: "H1",
-        },
-        timestamp: Date.now(),
-        sessionId: "debug-session",
-      }),
-    }).catch(() => {})
-    // #endregion
 
     if (bookingError || !booking) {
       return { error: "Booking not found" }
     }
 
-    if (booking.invitee_id !== user.id) {
+    if (booking.recipient_id !== user.id) {
       return { error: "Unauthorized" }
     }
 
-    // Check wallet balance (use maybeSingle – wallet may not exist yet)
-    const { data: wallet } = await supabase.from("wallets").select("balance, held_balance").eq("user_id", user.id).maybeSingle()
+    // Check wallet balance
+    const { data: wallet } = await supabase.from("wallets").select("balance").eq("user_id", user.id).single()
 
-    if (!wallet || (wallet.balance ?? 0) < 5) {
+    if (!wallet || wallet.balance < 5) {
       return { error: "Insufficient wallet balance. Please add funds." }
     }
 
-    // Deduct £5 from wallet and hold (booking_deposits rows created by trigger when dana_events is inserted on confirm)
+    // Deduct £5 from wallet and hold
     await supabase
       .from("wallets")
       .update({
@@ -90,35 +56,64 @@ export async function acceptBooking(bookingId: string) {
       })
       .eq("user_id", user.id)
 
-    // Mark invitee as paid (RPC sets invitee_paid on date_invites; inviter must have paid first)
-    const { error: rpcError } = await supabase.rpc("mark_invitee_paid", { p_invite_id: validated.bookingId })
-    if (rpcError) {
-      return { error: rpcError.message || "Could not mark payment" }
-    }
+    // Create booking payment record with 7-day hold
+    const holdUntil = new Date()
+    holdUntil.setDate(holdUntil.getDate() + 7)
 
-    // Send confirmation emails (venue credit code is created when inviter confirms via confirm_dana_booking)
-    const inviterEmail = (booking.inviter as { email?: string })?.email
-    const inviteeEmail = (booking.invitee as { email?: string })?.email
-    const inviterFirstName = (booking.inviter as { first_name?: string })?.first_name ?? "Your date"
-    const inviteeFirstName = (booking.invitee as { first_name?: string })?.first_name ?? "Your date"
-    const venueName = (booking.venue as { name?: string })?.name ?? "the venue"
+    await supabase.from("booking_payments").insert({
+      booking_id: validated.bookingId,
+      user_id: user.id,
+      amount: 5.0,
+      status: "held",
+      hold_until: holdUntil.toISOString(),
+    })
 
-    if (inviterEmail) {
-      await sendEmail({
-        to: inviterEmail,
-        subject: "Date deposit paid",
-        html: `<h1>Great news!</h1><p>${inviteeFirstName} has paid their deposit for your date invitation.</p><p>You can now confirm the booking from your invite (once both have paid).</p><p>Venue: ${venueName}</p>`,
+    // Update booking status
+    await supabase
+      .from("date_invites")
+      .update({
+        accept_status: "accepted",
+        payment_status: "paid",
+        status: "confirmed",
       })
-    }
-    if (inviteeEmail) {
-      await sendEmail({
-        to: inviteeEmail,
-        subject: "Deposit received",
-        html: `<h1>Deposit received</h1><p>Your £5 deposit for the date with ${inviterFirstName} has been received.</p><p>Once the inviter confirms the booking, you'll get venue credit details.</p><p>Venue: ${venueName}</p>`,
-      })
-    }
+      .eq("id", validated.bookingId)
 
-    return { success: true }
+    // Generate £10 promo code for both parties
+    const promoCode = `DANA${Math.random().toString(36).substring(2, 8).toUpperCase()}`
+    const expiresAt = new Date()
+    expiresAt.setMinutes(expiresAt.getMinutes() + 30) // Valid for 30 min after booking start
+
+    await supabase.from("promo_codes").insert([
+      {
+        code: promoCode,
+        amount: 10.0,
+        booking_id: validated.bookingId,
+        created_for_user_id: booking.sender_id,
+        valid_until: expiresAt.toISOString(),
+      },
+      {
+        code: promoCode,
+        amount: 10.0,
+        booking_id: validated.bookingId,
+        created_for_user_id: booking.recipient_id,
+        valid_until: expiresAt.toISOString(),
+      },
+    ])
+
+    // Send confirmation emails
+    await sendEmail({
+      to: booking.sender.email,
+      subject: "Date Confirmed!",
+      html: `<h1>Great news!</h1><p>${booking.recipient.first_name} has accepted your date invitation.</p><p>Your promo code: <strong>${promoCode}</strong></p><p>Use it at ${booking.venue.name} within 30 minutes of your booking time.</p>`,
+    })
+
+    await sendEmail({
+      to: booking.recipient.email,
+      subject: "Date Confirmed!",
+      html: `<h1>Booking Confirmed!</h1><p>You've accepted the date with ${booking.sender.first_name}.</p><p>Your promo code: <strong>${promoCode}</strong></p><p>Use it at ${booking.venue.name} within 30 minutes of your booking time.</p>`,
+    })
+
+    return { success: true, promoCode }
   } catch (error) {
     console.error("Accept booking error:", error)
     return { error: "Failed to accept booking" }
@@ -140,7 +135,7 @@ export async function declineBooking(bookingId: string, reason?: string) {
 
     const { data: booking } = await supabase
       .from("date_invites")
-      .select("*, inviter:profiles!inviter_id(*)")
+      .select("*, sender:profiles!sender_id(*)")
       .eq("id", validated.bookingId)
       .single()
 
@@ -148,35 +143,34 @@ export async function declineBooking(bookingId: string, reason?: string) {
       return { error: "Booking not found" }
     }
 
-    // Update booking status (no accept_status column; use status only)
+    // Update booking status
     await supabase
       .from("date_invites")
       .update({
+        accept_status: "declined",
         decline_reason: sanitizeInput(reason || ""),
-        status: "declined",
-        updated_at: new Date().toISOString(),
+        status: "cancelled",
       })
       .eq("id", validated.bookingId)
 
-    // Refund inviter's £5 if they had already paid
-    const inviterId = (booking as { inviter_id: string }).inviter_id
-    const { data: inviterWallet } = await supabase
+    // Refund sender's £5
+    const { data: senderWallet } = await supabase
       .from("wallets")
       .select("balance, held_balance")
-      .eq("user_id", inviterId)
+      .eq("user_id", booking.sender_id)
       .single()
 
-    if (inviterWallet) {
+    if (senderWallet) {
       await supabase
         .from("wallets")
         .update({
-          balance: inviterWallet.balance + 5,
-          held_balance: Math.max(0, (inviterWallet.held_balance || 0) - 5),
+          balance: senderWallet.balance + 5,
+          held_balance: Math.max(0, (senderWallet.held_balance || 0) - 5),
         })
-        .eq("user_id", inviterId)
+        .eq("user_id", booking.sender_id)
 
       await supabase.from("wallet_transactions").insert({
-        user_id: inviterId,
+        user_id: booking.sender_id,
         type: "refund",
         amount: 5.0,
         description: "Booking declined - deposit refunded",
@@ -184,14 +178,12 @@ export async function declineBooking(bookingId: string, reason?: string) {
       })
     }
 
-    const inviterEmail = (booking.inviter as { email?: string })?.email
-    if (inviterEmail) {
-      await sendEmail({
-        to: inviterEmail,
-        subject: "Date Invitation Declined",
-        html: `<h1>Update on your invitation</h1><p>Unfortunately, your date invitation has been declined.</p><p>Your £5 deposit has been refunded to your wallet.</p>`,
-      })
-    }
+    // Send notification email
+    await sendEmail({
+      to: booking.sender.email,
+      subject: "Date Invitation Declined",
+      html: `<h1>Update on your invitation</h1><p>Unfortunately, your date invitation has been declined.</p><p>Your £5 deposit has been refunded to your wallet.</p>`,
+    })
 
     return { success: true }
   } catch (error) {
@@ -215,7 +207,7 @@ export async function cancelBooking(bookingId: string, reason?: string) {
 
     const { data: booking } = await supabase
       .from("date_invites")
-      .select("*, inviter:profiles!inviter_id(*), invitee:profiles!invitee_id(*)")
+      .select("*, sender:profiles!sender_id(*), recipient:profiles!recipient_id(*)")
       .eq("id", validated.bookingId)
       .single()
 
@@ -223,8 +215,7 @@ export async function cancelBooking(bookingId: string, reason?: string) {
       return { error: "Booking not found" }
     }
 
-    const b = booking as { proposed_date: string; proposed_time: string }
-    const bookingDate = new Date(`${b.proposed_date}T${b.proposed_time}`)
+    const bookingDate = new Date(booking.date_time)
     const now = new Date()
     const hoursUntilBooking = (bookingDate.getTime() - now.getTime()) / (1000 * 60 * 60)
 
@@ -243,17 +234,18 @@ export async function cancelBooking(bookingId: string, reason?: string) {
       refundMessage = "No refund (less than 24 hours notice)"
     }
 
+    // Update booking
     await supabase
       .from("date_invites")
-      .update({ status: "cancelled", updated_at: new Date().toISOString() })
+      .update({
+        status: "cancelled",
+      })
       .eq("id", validated.bookingId)
 
-    const inviterId = (booking as { inviter_id: string }).inviter_id
-    const inviteeId = (booking as { invitee_id: string }).invitee_id
-
+    // Process refunds if applicable
     if (refundAmount > 0) {
-      for (const userId of [inviterId, inviteeId]) {
-        const { data: wallet } = await supabase.from("wallets").select("*").eq("user_id", userId).maybeSingle()
+      for (const userId of [booking.sender_id, booking.recipient_id]) {
+        const { data: wallet } = await supabase.from("wallets").select("*").eq("user_id", userId).single()
 
         if (wallet) {
           const refundPerPerson = refundAmount / 2
@@ -276,22 +268,18 @@ export async function cancelBooking(bookingId: string, reason?: string) {
       }
     }
 
-    const inviterEmail = (booking.inviter as { email?: string })?.email
-    const inviteeEmail = (booking.invitee as { email?: string })?.email
-    if (inviterEmail) {
-      await sendEmail({
-        to: inviterEmail,
-        subject: "Booking Cancelled",
-        html: `<h1>Booking Cancelled</h1><p>Your booking has been cancelled.</p><p>${refundMessage}</p>`,
-      })
-    }
-    if (inviteeEmail) {
-      await sendEmail({
-        to: inviteeEmail,
-        subject: "Booking Cancelled",
-        html: `<h1>Booking Cancelled</h1><p>The booking has been cancelled.</p><p>${refundMessage}</p>`,
-      })
-    }
+    // Send emails
+    await sendEmail({
+      to: booking.sender.email,
+      subject: "Booking Cancelled",
+      html: `<h1>Booking Cancelled</h1><p>Your booking has been cancelled.</p><p>${refundMessage}</p>`,
+    })
+
+    await sendEmail({
+      to: booking.recipient.email,
+      subject: "Booking Cancelled",
+      html: `<h1>Booking Cancelled</h1><p>The booking has been cancelled.</p><p>${refundMessage}</p>`,
+    })
 
     return { success: true, message: refundMessage }
   } catch (error) {
@@ -300,7 +288,6 @@ export async function cancelBooking(bookingId: string, reason?: string) {
   }
 }
 
-/** Validate venue credit code for current user. Codes are per-booking (venue_credit_codes); not added to wallet – use at venue. */
 export async function applyPromoCode(code: string) {
   const supabase = await createClient()
   const {
@@ -314,42 +301,57 @@ export async function applyPromoCode(code: string) {
   try {
     const validated = promoCodeSchema.parse({ code: sanitizeInput(code.toUpperCase()) })
 
-    const { data: credit, error: creditError } = await supabase
-      .from("venue_credit_codes")
-      .select("id, code, date_invite_id, valid_from, valid_until, used_at")
+    const { data: promo, error: promoError } = await supabase
+      .from("promo_codes")
+      .select("*")
       .eq("code", validated.code)
+      .eq("created_for_user_id", user.id)
+      .is("used_by_user_id", null)
       .single()
 
-    if (creditError || !credit) {
-      return { error: "Invalid or unknown venue credit code" }
+    if (promoError || !promo) {
+      return { error: "Invalid or already used promo code" }
     }
 
-    const { data: invite } = await supabase
-      .from("date_invites")
-      .select("inviter_id, invitee_id")
-      .eq("id", credit.date_invite_id)
-      .single()
-
-    if (!invite || (invite.inviter_id !== user.id && invite.invitee_id !== user.id)) {
-      return { error: "This code is not for your booking" }
+    if (new Date(promo.valid_until) < new Date()) {
+      return { error: "Promo code has expired" }
     }
 
-    if (credit.used_at) {
-      return { error: "This venue credit has already been used" }
+    // Apply promo code
+    const { data: wallet } = await supabase.from("wallets").select("*").eq("user_id", user.id).single()
+
+    if (!wallet) {
+      return { error: "Wallet not found" }
     }
 
-    const now = new Date()
-    if (new Date(credit.valid_until) < now) {
-      return { error: "Venue credit has expired" }
-    }
-    if (new Date(credit.valid_from) > now) {
-      return { error: "Venue credit is not yet valid" }
-    }
+    await supabase
+      .from("wallets")
+      .update({
+        balance: wallet.balance + promo.amount,
+      })
+      .eq("user_id", user.id)
 
-    return { success: true, message: "Venue credit valid. Use this code at the venue." }
+    await supabase
+      .from("promo_codes")
+      .update({
+        used_by_user_id: user.id,
+        used_at: new Date().toISOString(),
+        times_used: (promo.times_used || 0) + 1,
+      })
+      .eq("id", promo.id)
+
+    await supabase.from("wallet_transactions").insert({
+      user_id: user.id,
+      type: "deposit",
+      amount: promo.amount,
+      description: `Promo code applied: ${validated.code}`,
+      status: "completed",
+    })
+
+    return { success: true, amount: promo.amount }
   } catch (error) {
     console.error("Apply promo code error:", error)
-    return { error: "Failed to validate venue credit code" }
+    return { error: "Failed to apply promo code" }
   }
 }
 
@@ -366,7 +368,7 @@ export async function generateCalendarEvent(bookingId: string) {
   try {
     const { data: booking } = await supabase
       .from("date_invites")
-      .select("*, venue:venues(*), inviter:profiles!inviter_id(*), invitee:profiles!invitee_id(*)")
+      .select("*, venue:venues(*), sender:profiles!sender_id(*), recipient:profiles!recipient_id(*)")
       .eq("id", bookingId)
       .single()
 
@@ -374,15 +376,14 @@ export async function generateCalendarEvent(bookingId: string) {
       return { error: "Booking not found" }
     }
 
-    const b = booking as { proposed_date: string; proposed_time: string }
-    const startDate = new Date(`${b.proposed_date}T${b.proposed_time}`)
+    const startDate = new Date(booking.date_time)
     const endDate = new Date(startDate.getTime() + 2 * 60 * 60 * 1000) // 2 hours duration
 
     const formatDate = (date: Date) => {
       return date.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z"
     }
 
-    const otherPerson = (booking as { inviter_id: string }).inviter_id === user.id ? booking.invitee : booking.inviter
+    const otherPerson = booking.sender_id === user.id ? booking.recipient : booking.sender
 
     const icsContent = `BEGIN:VCALENDAR
 VERSION:2.0

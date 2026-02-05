@@ -2,38 +2,22 @@
 
 # dependencies
 /node_modules
-node_modules/
-
-# shared build
-/shared/dist
-shared/dist/
-
-# Expo / React Native
-/mobile/.expo
-/mobile/node_modules
-mobile/.expo/
-mobile/node_modules/
 
 # next.js
 /.next/
 /out/
-.next/
-out/
 
 # production
 /build
-build/
 
 # debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
-pnpm-debug.log*
 
 # env files
 .env*
-!.env.example
 
 # vercel
 .vercel
@@ -41,39 +25,3 @@ pnpm-debug.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-
-# OS files
-.DS_Store
-Thumbs.db
-desktop.ini
-*.swp
-*.swo
-
-# IDE
-.vscode/
-.idea/
-*.sublime-project
-*.sublime-workspace
-
-# Logs
-logs/
-*.log
-
-# Temporary files
-*.tmp
-*.temp
-*.exe
-*.zip
-*.tar.gz
-
-# Testing
-coverage/
-.nyc_output/
-.jest/
-
-# Turbo
-.turbo/
-
-# Misc
-*.cache
-.cache/
