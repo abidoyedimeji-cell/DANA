@@ -2,8 +2,6 @@ export * from "../src/utils";
 /**
  * Pure utilities shared between web and mobile (no DOM/RN-specific code).
  */
-
-export * from "./export";
 export function sanitizeInput(input: string): string {
   return input
     .trim()

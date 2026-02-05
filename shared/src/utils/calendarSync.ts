@@ -37,10 +37,10 @@ async function fetchCalComSlots(link: string, startDate: Date, endDate: Date): P
   try {
     const response = await fetch(apiUrl);
     if (!response.ok) throw new Error('Cal.com API error');
-    const data = await response.json();
+    const data = (await response.json()) as { slots?: { time: string }[] };
     
     // Cal.com returns slots in format: { slots: [{ time: "2024-01-01T10:00:00Z" }] }
-    return (data.slots || []).map((slot: any) => ({
+    return (data.slots || []).map((slot: { time: string }) => ({
       start: new Date(slot.time),
       end: new Date(new Date(slot.time).getTime() + 60 * 60 * 1000), // 1 hour default
       available: true,
