@@ -1,18 +1,14 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { InviteModal } from "@/components/bookings/invite-modal"
-import { RescheduleModal } from "@/components/bookings/reschedule-modal"
 import { acceptBooking, declineBooking, cancelBooking } from "@/app/actions/bookings"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { useSupabaseClient } from "@/lib/supabase/use-supabase-client"
-import { getDateRequestsForUser } from "@/shared/api/date-requests"
-import type { DateRequest, DateRequestStatus, Profile, Venue } from "@/shared/types"
 
 type BookingStatus = "pending" | "confirmed" | "completed" | "cancelled"
 
@@ -28,9 +24,49 @@ interface Booking {
   userPaid: boolean
   guestPaid: boolean
   type: "dating" | "business"
-  isInvitee: boolean
-  inviterPaid: boolean
 }
+
+const sampleBookings: Booking[] = [
+  {
+    id: "1",
+    guestName: "Sophie",
+    guestImage: "/professional-woman-smiling.png",
+    venue: "The Blue Lounge",
+    venueLocation: "Shoreditch",
+    date: "2026-01-15",
+    time: "19:30",
+    status: "confirmed",
+    userPaid: true,
+    guestPaid: true,
+    type: "dating",
+  },
+  {
+    id: "2",
+    guestName: "James",
+    guestImage: "/professional-man-business-casual-portrait.jpg",
+    venue: "Ember & Oak",
+    venueLocation: "Mayfair",
+    date: "2026-01-18",
+    time: "12:30",
+    status: "pending",
+    userPaid: true,
+    guestPaid: false,
+    type: "business",
+  },
+  {
+    id: "3",
+    guestName: "Emma",
+    guestImage: "/young-professional-woman-entrepreneur-portrait.jpg",
+    venue: "Café Botanica",
+    venueLocation: "Notting Hill",
+    date: "2025-12-28",
+    time: "10:00",
+    status: "completed",
+    userPaid: true,
+    guestPaid: true,
+    type: "dating",
+  },
+]
 
 const statusConfig: Record<BookingStatus, { label: string; variant: "default" | "secondary" | "destructive" }> = {
   pending: { label: "Awaiting Payment", variant: "secondary" },
@@ -40,51 +76,12 @@ const statusConfig: Record<BookingStatus, { label: string; variant: "default" | 
 }
 
 export function BookingsList() {
-  const supabase = useSupabaseClient()
   const [showInviteModal, setShowInviteModal] = useState(false)
-  const [rescheduleInviteId, setRescheduleInviteId] = useState<string | null>(null)
-  const [bookings, setBookings] = useState<Booking[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
 
-  const loadBookings = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      if (!user) {
-        setBookings([])
-        setError("Please sign in to view bookings.")
-        return
-      }
-      const invites = await getDateRequestsForUser(supabase, user.id)
-      const mapped = invites.map((invite) => mapInviteToBooking(invite, user.id))
-      setBookings(mapped)
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to load bookings.")
-    } finally {
-      setLoading(false)
-    }
-  }, [supabase])
-
-  useEffect(() => {
-    loadBookings()
-  }, [loadBookings])
-
-  const upcomingBookings = useMemo(
-    () =>
-      bookings.filter((b) => {
-        if (b.status === "cancelled" || b.status === "completed") return false
-        return new Date(`${b.date}T${b.time}`) >= new Date()
-      }),
-    [bookings],
+  const upcomingBookings = sampleBookings.filter(
+    (b) => (b.status === "pending" || b.status === "confirmed") && new Date(b.date) >= new Date(),
   )
-  const pastBookings = useMemo(
-    () => bookings.filter((b) => b.status === "completed" || b.status === "cancelled"),
-    [bookings],
-  )
+  const pastBookings = sampleBookings.filter((b) => b.status === "completed" || b.status === "cancelled")
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr)
@@ -115,15 +112,7 @@ export function BookingsList() {
         </TabsList>
 
         <TabsContent value="upcoming" className="space-y-4">
-          {loading ? (
-            <Card className="border-border">
-              <CardContent className="py-8 text-center text-muted-foreground">Loading bookings...</CardContent>
-            </Card>
-          ) : error ? (
-            <Card className="border-border">
-              <CardContent className="py-8 text-center text-destructive">{error}</CardContent>
-            </Card>
-          ) : upcomingBookings.length === 0 ? (
+          {upcomingBookings.length === 0 ? (
             <Card className="border-border">
               <CardContent className="py-8 text-center">
                 <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
@@ -144,95 +133,30 @@ export function BookingsList() {
             </Card>
           ) : (
             upcomingBookings.map((booking) => (
-              <BookingCard
-                key={booking.id}
-                booking={booking}
-                formatDate={formatDate}
-                onReschedule={booking.status === "confirmed" ? () => setRescheduleInviteId(booking.id) : undefined}
-                onUpdated={loadBookings}
-              />
+              <BookingCard key={booking.id} booking={booking} formatDate={formatDate} />
             ))
           )}
         </TabsContent>
 
         <TabsContent value="past" className="space-y-4">
-          {loading ? (
-            <Card className="border-border">
-              <CardContent className="py-8 text-center text-muted-foreground">Loading bookings...</CardContent>
-            </Card>
-          ) : error ? (
-            <Card className="border-border">
-              <CardContent className="py-8 text-center text-destructive">{error}</CardContent>
-            </Card>
-          ) : pastBookings.length === 0 ? (
+          {pastBookings.length === 0 ? (
             <Card className="border-border">
               <CardContent className="py-8 text-center">
                 <p className="text-muted-foreground">No past bookings yet</p>
               </CardContent>
             </Card>
           ) : (
-            pastBookings.map((booking) => (
-              <BookingCard
-                key={booking.id}
-                booking={booking}
-                formatDate={formatDate}
-                onUpdated={loadBookings}
-              />
-            ))
+            pastBookings.map((booking) => <BookingCard key={booking.id} booking={booking} formatDate={formatDate} />)
           )}
         </TabsContent>
       </Tabs>
 
       <InviteModal open={showInviteModal} onClose={() => setShowInviteModal(false)} />
-      <RescheduleModal
-        open={!!rescheduleInviteId}
-        onClose={() => setRescheduleInviteId(null)}
-        dateInviteId={rescheduleInviteId}
-        onSuccess={loadBookings}
-      />
     </div>
   )
 }
 
-function mapInviteToBooking(invite: DateRequest, currentUserId: string): Booking {
-  const isInvitee = invite.invitee_id === currentUserId
-  const otherProfile = (isInvitee ? invite.inviter : invite.invitee) as Profile | null
-  const venue = invite.venue as Venue | null
-  return {
-    id: invite.id,
-    guestName: otherProfile?.first_name || otherProfile?.display_name || "Guest",
-    guestImage: otherProfile?.avatar_url || "/placeholder.svg",
-    venue: venue?.name ?? "Venue",
-    venueLocation: venue?.location ?? venue?.city ?? "Venue",
-    date: invite.proposed_date,
-    time: invite.proposed_time?.slice(0, 5) ?? invite.proposed_time,
-    status: mapInviteStatus(invite.status),
-    userPaid: isInvitee ? invite.invitee_paid : invite.inviter_paid,
-    guestPaid: isInvitee ? invite.inviter_paid : invite.invitee_paid,
-    type: "dating",
-    isInvitee,
-    inviterPaid: invite.inviter_paid,
-  }
-}
-
-function mapInviteStatus(status: DateRequestStatus): BookingStatus {
-  if (status === "accepted") return "confirmed"
-  if (status === "completed") return "completed"
-  if (status === "cancelled" || status === "declined") return "cancelled"
-  return "pending"
-}
-
-function BookingCard({
-  booking,
-  formatDate,
-  onReschedule,
-  onUpdated,
-}: {
-  booking: Booking
-  formatDate: (date: string) => string
-  onReschedule?: () => void
-  onUpdated?: () => void
-}) {
+function BookingCard({ booking, formatDate }: { booking: Booking; formatDate: (date: string) => string }) {
   const [isAccepting, setIsAccepting] = useState(false)
   const [isDeclining, setIsDeclining] = useState(false)
   const [isCancelling, setIsCancelling] = useState(false)
@@ -248,8 +172,7 @@ function BookingCard({
     if (result.error) {
       toast.error(result.error)
     } else {
-      toast.success("Deposit received. Inviter can now confirm the booking.")
-      onUpdated?.()
+      toast.success(`Booking accepted! Promo code: ${result.promoCode}`)
       router.refresh()
     }
   }
@@ -264,7 +187,6 @@ function BookingCard({
       toast.error(result.error)
     } else {
       toast.success("Booking declined. Sender has been refunded.")
-      onUpdated?.()
       router.refresh()
     }
   }
@@ -283,7 +205,6 @@ function BookingCard({
       toast.error(result.error)
     } else {
       toast.success(result.message || "Booking cancelled")
-      onUpdated?.()
       router.refresh()
     }
   }
@@ -377,11 +298,6 @@ function BookingCard({
         <div className="flex gap-2">
           {booking.status === "confirmed" && (
             <>
-              {onReschedule && (
-                <Button variant="outline" size="sm" className="flex-1 bg-transparent" onClick={onReschedule}>
-                  Reschedule
-                </Button>
-              )}
               <Button variant="outline" size="sm" className="flex-1 bg-transparent">
                 <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path
@@ -403,28 +319,20 @@ function BookingCard({
               </Button>
             </>
           )}
-          {booking.status === "pending" && booking.isInvitee && (
+          {booking.status === "pending" && !booking.userPaid && (
             <>
-              {!booking.inviterPaid ? (
-                <p className="text-xs text-muted-foreground">
-                  Waiting for the inviter to pay their deposit before you can accept.
-                </p>
-              ) : (
-                <>
-                  <Button size="sm" className="flex-1" onClick={handleAccept} disabled={isAccepting}>
-                    {isAccepting ? "Processing..." : "Accept & Pay £5"}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="flex-1 bg-transparent"
-                    onClick={handleDecline}
-                    disabled={isDeclining}
-                  >
-                    {isDeclining ? "Declining..." : "Decline"}
-                  </Button>
-                </>
-              )}
+              <Button size="sm" className="flex-1" onClick={handleAccept} disabled={isAccepting}>
+                {isAccepting ? "Processing..." : "Accept & Pay £5"}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="flex-1 bg-transparent"
+                onClick={handleDecline}
+                disabled={isDeclining}
+              >
+                {isDeclining ? "Declining..." : "Decline"}
+              </Button>
             </>
           )}
           {booking.status === "completed" && (

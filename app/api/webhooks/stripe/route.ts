@@ -4,15 +4,9 @@ import type Stripe from "stripe"
 import { stripe } from "@/lib/stripe"
 import { createClient } from "@/lib/supabase/server"
 
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
+const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
 
 export async function POST(req: Request) {
-  if (!stripe || !webhookSecret) {
-    return NextResponse.json(
-      { error: "Stripe is not configured" },
-      { status: 503 }
-    )
-  }
   const body = await req.text()
   const signature = (await headers()).get("stripe-signature")!
 
@@ -37,16 +31,12 @@ export async function POST(req: Request) {
           const userId = session.metadata.user_id
           const amount = Number.parseFloat(session.metadata.amount)
 
-          let { data: wallet } = await supabase.from("wallets").select("*").eq("user_id", userId).maybeSingle()
+          const { data: wallet } = await supabase.from("wallets").select("*").eq("user_id", userId).single()
 
-          if (!wallet) {
-            const { data: newWallet } = await supabase.from("wallets").insert({ user_id: userId, balance: 0, currency: "GBP" }).select().single()
-            wallet = newWallet
-          }
           if (wallet) {
             await supabase
               .from("wallets")
-              .update({ balance: (wallet.balance ?? 0) + amount })
+              .update({ balance: wallet.balance + amount })
               .eq("user_id", userId)
 
             await supabase.from("wallet_transactions").insert({
@@ -88,15 +78,12 @@ export async function POST(req: Request) {
             .eq("id", userId)
 
           // Add complimentary credits (£10 monthly)
-          let { data: wallet } = await supabase.from("wallets").select("*").eq("user_id", userId).maybeSingle()
-          if (!wallet) {
-            const { data: newWallet } = await supabase.from("wallets").insert({ user_id: userId, balance: 0, currency: "GBP" }).select().single()
-            wallet = newWallet
-          }
+          const { data: wallet } = await supabase.from("wallets").select("*").eq("user_id", userId).single()
+
           if (wallet) {
             await supabase
               .from("wallets")
-              .update({ balance: (wallet.balance ?? 0) + 10 })
+              .update({ balance: wallet.balance + 10 })
               .eq("user_id", userId)
 
             await supabase.from("wallet_transactions").insert({

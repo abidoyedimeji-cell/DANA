@@ -1,12 +1,13 @@
 import Stripe from "stripe"
 
-const stripeKey = process.env.STRIPE_SECRET_KEY
-export const stripe: Stripe | null = stripeKey
-  ? new Stripe(stripeKey, {
-      apiVersion: "2024-12-18.acacia",
-      typescript: true,
-    })
-  : null
+if (!process.env.STRIPE_SECRET_KEY) {
+  throw new Error("STRIPE_SECRET_KEY is not set")
+}
+
+export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+  apiVersion: "2024-12-18.acacia",
+  typescript: true,
+})
 
 export const SUBSCRIPTION_PLANS = {
   PREMIUM: {

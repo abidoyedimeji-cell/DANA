@@ -11,10 +11,6 @@ CREATE TABLE IF NOT EXISTS public.profile_photos (
 
 ALTER TABLE public.profile_photos ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "photos_select_all" ON public.profile_photos;
-DROP POLICY IF EXISTS "photos_insert_own" ON public.profile_photos;
-DROP POLICY IF EXISTS "photos_update_own" ON public.profile_photos;
-DROP POLICY IF EXISTS "photos_delete_own" ON public.profile_photos;
 CREATE POLICY "photos_select_all" ON public.profile_photos FOR SELECT USING (true);
 CREATE POLICY "photos_insert_own" ON public.profile_photos FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "photos_update_own" ON public.profile_photos FOR UPDATE USING (auth.uid() = user_id);

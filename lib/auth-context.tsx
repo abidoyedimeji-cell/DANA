@@ -2,11 +2,25 @@
 
 import type React from "react"
 import { createContext, useContext, useEffect, useState, useCallback, useRef } from "react"
-import { supabase } from "@/lib/supabase/client"
+import { supabase } from "@/lib/supabase/client" // Import singleton instance directly
 import type { User, SupabaseClient } from "@supabase/supabase-js"
-import type { Profile, ProfileMode } from "shared"
 
-export type { Profile, ProfileMode }
+interface Profile {
+  id: string
+  username: string | null
+  display_name: string | null
+  bio: string | null
+  avatar_url: string | null
+  age: number | null
+  location: string | null
+  is_verified: boolean
+  profile_mode: string
+  gender?: string | null
+  phone?: string | null
+  first_name?: string | null
+}
+
+export type ProfileMode = "dating" | "business" | "both"
 
 interface AuthContextType {
   user: User | null
@@ -32,46 +46,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const loadProfile = useCallback(async (userId: string) => {
     try {
-      const { data, error } = await supabase.from("profiles").select("*").eq("id", userId).single()
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Profile load timeout")), 5000),
+      )
 
-      // PGRST116 = no rows (trigger may not have run) – create profile from user metadata
-      if (error?.code === "PGRST116") {
-        const { data: { user: authUser } } = await supabase.auth.getUser()
-        const meta = authUser?.user_metadata ?? {}
-        const { data: inserted, error: insertErr } = await supabase
-          .from("profiles")
-          .insert({
-            id: userId,
-            display_name: meta.first_name ?? meta.display_name ?? authUser?.email ?? null,
-            username: meta.username ?? null,
-          })
-          .select()
-          .single()
-        if (!insertErr && inserted) {
-          setProfile(inserted as Profile)
-          return
-        }
-        setProfile(null)
-        setIsLoading(false)
-        return
-      }
+      const profilePromise = supabase.from("profiles").select("*").eq("id", userId).single()
 
-      // Table missing or schema cache / permission errors – don't block app
+      const { data, error } = (await Promise.race([profilePromise, timeoutPromise])) as any
+
       if (error) {
-        const msg = error.message ?? (error as { message?: string }).message ?? String(error)
-        console.error("[v0] Error loading profile:", msg)
-        if (msg.includes("schema cache") || msg.includes("could not find") || msg.includes("relation") || msg.includes("permission")) {
-          console.warn("[v0] Run scripts/001_create_profiles.sql in Supabase SQL Editor. See scripts/SUPABASE_SETUP.md")
-        }
-        setProfile(null)
+        console.error("[v0] Error loading profile:", error)
+        // Don't block - set loading to false even if profile fails
         setIsLoading(false)
         return
       }
 
+      console.log("[v0] Profile loaded successfully:", data?.email, "role:", data?.user_role)
       setProfile(data)
     } catch (error) {
       console.error("[v0] Error in loadProfile:", error)
-      setProfile(null)
+      // Don't block - allow app to render even if profile load fails
       setIsLoading(false)
     }
   }, [])

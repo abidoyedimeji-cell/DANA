@@ -99,7 +99,7 @@ export default function WalletPage() {
       const supabase = createClient()
 
       // Check if wallet exists, create if not
-      let { data: walletData } = await supabase.from("wallets").select("*").eq("user_id", user?.id).maybeSingle()
+      let { data: walletData } = await supabase.from("wallets").select("*").eq("user_id", user?.id).single()
 
       if (!walletData) {
         // Create wallet
@@ -160,8 +160,9 @@ export default function WalletPage() {
     if (result.error) {
       toast.error(result.error)
     } else {
-      toast.success(result.message ?? "Venue credit validated.")
+      toast.success(`£${result.amount} added to your wallet!`)
       setPromoCode("")
+      fetchWalletData()
     }
   }
 

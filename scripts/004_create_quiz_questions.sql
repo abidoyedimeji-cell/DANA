@@ -12,10 +12,6 @@ CREATE TABLE IF NOT EXISTS public.quiz_questions (
 
 ALTER TABLE public.quiz_questions ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "quiz_select_all" ON public.quiz_questions;
-DROP POLICY IF EXISTS "quiz_insert_own" ON public.quiz_questions;
-DROP POLICY IF EXISTS "quiz_update_own" ON public.quiz_questions;
-DROP POLICY IF EXISTS "quiz_delete_own" ON public.quiz_questions;
 CREATE POLICY "quiz_select_all" ON public.quiz_questions FOR SELECT USING (true);
 CREATE POLICY "quiz_insert_own" ON public.quiz_questions FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "quiz_update_own" ON public.quiz_questions FOR UPDATE USING (auth.uid() = user_id);
@@ -33,9 +29,6 @@ CREATE TABLE IF NOT EXISTS public.quiz_responses (
 
 ALTER TABLE public.quiz_responses ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "responses_select_relevant" ON public.quiz_responses;
-DROP POLICY IF EXISTS "responses_insert_own" ON public.quiz_responses;
-DROP POLICY IF EXISTS "responses_delete_own" ON public.quiz_responses;
 CREATE POLICY "responses_select_relevant" ON public.quiz_responses FOR SELECT 
   USING (auth.uid() = responder_id OR auth.uid() IN (SELECT user_id FROM public.quiz_questions WHERE id = question_id));
 CREATE POLICY "responses_insert_own" ON public.quiz_responses FOR INSERT WITH CHECK (auth.uid() = responder_id);
