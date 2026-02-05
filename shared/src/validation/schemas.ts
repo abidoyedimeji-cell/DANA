@@ -96,11 +96,55 @@ export const subscriptionSchema = z.object({
 
 // Profile schemas
 export const profileUpdateSchema = z.object({
+  // Social fields
+  display_name: z.string().trim().min(1).max(100).optional(),
+  bio_social: z.string().trim().max(500).optional(),
+  calendar_link_social: z
+    .string()
+    .trim()
+    .url("Invalid URL")
+    .optional()
+    .nullable()
+    .transform((val) => {
+      if (!val || val.trim() === "") return null;
+      const trimmed = val.trim();
+      return trimmed.startsWith("http://") || trimmed.startsWith("https://")
+        ? trimmed
+        : `https://${trimmed}`;
+    })
+    .pipe(z.string().url().nullable().optional()),
+  
+  // Professional fields
+  headline: z.string().trim().max(150).optional(),
+  bio_professional: z.string().trim().max(1000).optional(),
+  industry: z.string().trim().max(100).optional(),
+  years_in_role: z.number().int().min(0).max(50).optional(),
+  seniority_level: z.enum(["junior", "mid", "senior", "executive", "founder"]).optional(),
+  professional_intents: z.array(z.string().trim()).max(10).optional(),
+  calendar_link_business: z
+    .string()
+    .trim()
+    .url("Invalid URL")
+    .optional()
+    .nullable()
+    .transform((val) => {
+      if (!val || val.trim() === "") return null;
+      const trimmed = val.trim();
+      return trimmed.startsWith("http://") || trimmed.startsWith("https://")
+        ? trimmed
+        : `https://${trimmed}`;
+    })
+    .pipe(z.string().url().nullable().optional()),
+  
+  // Basic fields
   firstName: z.string().trim().min(1).max(50).optional(),
   lastName: z.string().trim().min(1).max(50).optional(),
-  bio_social: z.string().trim().max(500).optional(),
   location: z.string().trim().max(100).optional(),
   interests: z.array(z.string().trim()).max(10).optional(),
+  
+  // Profile completion
+  is_profile_complete: z.boolean().optional(),
+  profile_mode: z.enum(["dating", "business", "both"]).optional(),
 });
 
 // Meeting request schemas (High-Intent Connection Engine)

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { createClient } from "@/lib/supabase/client"
+import { updateProfile } from "shared"
 import { Button } from "@/components/ui/button"
 import { Loader2, Edit2, MapPin, X, Check, LogIn, TrendingUp, Wallet, Settings, Calendar } from "lucide-react"
 import Link from "next/link"
@@ -16,7 +17,7 @@ export default function ProfilePage() {
   const [formData, setFormData] = useState({
     display_name: "",
     username: "",
-    bio: "",
+    bio_social: "",
     age: "",
     location: "",
     height: "",
@@ -27,7 +28,7 @@ export default function ProfilePage() {
       setFormData({
         display_name: profile.display_name || "",
         username: profile.username || "",
-        bio: profile.bio || "",
+        bio_social: (profile as any).bio_social || (profile as any).bio || "",
         age: profile.age?.toString() || "",
         location: profile.location || "",
         height: "",
@@ -68,20 +69,39 @@ export default function ProfilePage() {
       const supabase = createClient()
       console.log("[v0] Saving profile data:", formData)
 
-      const { error } = await supabase
-        .from("profiles")
-        .update({
-          display_name: formData.display_name,
-          username: formData.username,
-          bio: formData.bio,
-          age: Number.parseInt(formData.age) || null,
-          location: formData.location,
-        })
-        .eq("id", user.id)
+      // Use shared updateProfile function for validated fields
+      await updateProfile(supabase, user.id, {
+        display_name: formData.display_name || undefined,
+        bio_social: formData.bio_social || undefined,
+        location: formData.location || undefined,
+      })
 
-      if (error) {
-        console.error("[v0] Error saving profile:", error)
-        throw error
+      // Handle username separately (not in shared schema yet, but needed for web)
+      // TODO: Add username to shared schema if needed
+      if (formData.username !== profile.username) {
+        const { error: usernameError } = await supabase
+          .from("profiles")
+          .update({ username: formData.username || null })
+          .eq("id", user.id)
+        
+        if (usernameError) {
+          console.error("[v0] Error updating username:", usernameError)
+          throw usernameError
+        }
+      }
+
+      // Handle age separately (not in shared schema yet)
+      // TODO: Add age to shared schema if needed
+      if (formData.age !== (profile.age?.toString() || "")) {
+        const { error: ageError } = await supabase
+          .from("profiles")
+          .update({ age: Number.parseInt(formData.age) || null })
+          .eq("id", user.id)
+        
+        if (ageError) {
+          console.error("[v0] Error updating age:", ageError)
+          throw ageError
+        }
       }
 
       console.log("[v0] Profile saved successfully")
@@ -252,14 +272,14 @@ export default function ProfilePage() {
             <label className="text-white/60 text-sm mb-1 block">Bio</label>
             {isEditing ? (
               <textarea
-                value={formData.bio}
-                onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                value={formData.bio_social}
+                onChange={(e) => setFormData({ ...formData, bio_social: e.target.value })}
                 placeholder="Tell others about yourself..."
                 rows={4}
                 className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:border-[#E91E8C] focus:outline-none resize-none"
               />
             ) : (
-              <p className="text-white/80">{profile.bio || "No bio yet"}</p>
+              <p className="text-white/80">{(profile as any).bio_social || (profile as any).bio || "No bio yet"}</p>
             )}
           </div>
 
