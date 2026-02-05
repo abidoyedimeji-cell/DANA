@@ -191,7 +191,7 @@ export default function WalletPage() {
       {/* Header */}
       <div className="sticky top-0 z-10 bg-black/90 backdrop-blur-md border-b border-white/10 px-4 py-4">
         <div className="flex items-center gap-4">
-          <Link href="/app/profile">
+          <Link href="/profile">
             <ArrowLeft className="w-6 h-6 text-white" />
           </Link>
           <h1 className="text-white font-bold text-xl">Wallet</h1>

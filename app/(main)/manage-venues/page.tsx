@@ -11,7 +11,7 @@ import { useAuth } from "@/lib/auth-context"
 import { getVenues, createVenue, updateVenue, deleteVenue } from "@/lib/actions/venue-actions"
 import { AppHeader } from "@/components/navigation/app-header"
 
-export default function AdminVenuesPage() {
+export default function ManageVenuesPage() {
   const { user } = useAuth()
   const [venues, setVenues] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -117,7 +117,6 @@ export default function AdminVenuesPage() {
         headers.forEach((header, index) => {
           const value = values[index]
 
-          // Map CSV headers to venue fields
           if (header === "name") venueData.name = value
           else if (header === "description") venueData.description = value
           else if (header === "address") venueData.address = value
@@ -220,10 +219,7 @@ export default function AdminVenuesPage() {
               </Button>
               <Button
                 type="button"
-                onClick={() => {
-                  setShowCsvImport(false)
-                  setCsvData("")
-                }}
+                onClick={() => { setShowCsvImport(false); setCsvData("") }}
                 variant="outline"
                 className="border-white/10 bg-transparent"
               >
@@ -266,7 +262,6 @@ export default function AdminVenuesPage() {
                 onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                 className="bg-white/5 border-white/10 text-white"
               />
-
               <Input
                 placeholder="Category (e.g. Restaurant, Bar)"
                 value={formData.category}
@@ -291,7 +286,6 @@ export default function AdminVenuesPage() {
                 onChange={(e) => setFormData({ ...formData, rating: Number.parseFloat(e.target.value) })}
                 className="bg-white/5 border-white/10 text-white"
               />
-
               <Input
                 type="number"
                 placeholder="Price Range (1-4)"

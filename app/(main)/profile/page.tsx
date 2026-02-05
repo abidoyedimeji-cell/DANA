@@ -197,28 +197,28 @@ export default function ProfilePage() {
         </div>
 
         <div className="grid grid-cols-2 gap-3 mb-6">
-          <Link href="/app/analytics">
+          <Link href="/analytics">
             <div className="bg-gradient-to-br from-[#E91E8C]/20 to-[#E91E8C]/5 border border-[#E91E8C]/20 rounded-2xl p-4 hover:border-[#E91E8C]/40 transition-colors">
               <TrendingUp className="w-6 h-6 text-[#E91E8C] mb-2" />
               <p className="text-white font-semibold text-sm">Analytics</p>
               <p className="text-white/60 text-xs">View your stats</p>
             </div>
           </Link>
-          <Link href="/app/wallet">
+          <Link href="/wallet">
             <div className="bg-gradient-to-br from-[#2DD4BF]/20 to-[#2DD4BF]/5 border border-[#2DD4BF]/20 rounded-2xl p-4 hover:border-[#2DD4BF]/40 transition-colors">
               <Wallet className="w-6 h-6 text-[#2DD4BF] mb-2" />
               <p className="text-white font-semibold text-sm">Wallet</p>
               <p className="text-white/60 text-xs">£{walletBalance.toFixed(2)}</p>
             </div>
           </Link>
-          <Link href="/app/availability">
+          <Link href="/availability">
             <div className="bg-gradient-to-br from-[#FFD166]/20 to-[#FFD166]/5 border border-[#FFD166]/20 rounded-2xl p-4 hover:border-[#FFD166]/40 transition-colors">
               <Calendar className="w-6 h-6 text-[#FFD166] mb-2" />
               <p className="text-white font-semibold text-sm">Availability</p>
               <p className="text-white/60 text-xs">Set your schedule</p>
             </div>
           </Link>
-          <Link href="/app/settings">
+          <Link href="/settings">
             <div className="bg-gradient-to-br from-[#FF6B35]/20 to-[#FF6B35]/5 border border-[#FF6B35]/20 rounded-2xl p-4 hover:border-[#FF6B35]/40 transition-colors">
               <Settings className="w-6 h-6 text-[#FF6B35] mb-2" />
               <p className="text-white font-semibold text-sm">Settings</p>
@@ -321,7 +321,7 @@ export default function ProfilePage() {
 
         {/* Actions */}
         <div className="mt-8 space-y-3">
-          <Link href="/app/search">
+          <Link href="/search">
             <Button className="w-full bg-[#E91E8C] hover:bg-[#E91E8C]/90 text-white rounded-full py-6">
               Find Connections
             </Button>

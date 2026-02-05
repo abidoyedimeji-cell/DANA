@@ -38,7 +38,7 @@ const sampleNotifications: Notification[] = [
     created_at: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
     related_user_id: "user-1",
     action_type: "view_profile",
-    action_url: "/app/profile/user-1",
+    action_url: "/profile/user-1",
     action_label: "Accept",
     related_user: {
       id: "user-1",
@@ -57,7 +57,7 @@ const sampleNotifications: Notification[] = [
     related_user_id: "user-2",
     related_entity_id: "post-1",
     action_type: "view_content",
-    action_url: "/app/community/post-1",
+    action_url: "/community/post-1",
     action_label: "View Post",
     related_user: {
       id: "user-2",
@@ -74,7 +74,7 @@ const sampleNotifications: Notification[] = [
     is_read: false,
     created_at: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
     action_type: "take_action",
-    action_url: "/app/spots",
+    action_url: "/spots",
     action_label: "Book Now",
   },
   {
@@ -87,7 +87,7 @@ const sampleNotifications: Notification[] = [
     related_user_id: "user-3",
     related_entity_id: "post-2",
     action_type: "view_content",
-    action_url: "/app/community/post-2",
+    action_url: "/community/post-2",
     action_label: "Reply",
     related_user: {
       id: "user-3",
@@ -106,7 +106,7 @@ const sampleNotifications: Notification[] = [
     related_user_id: "user-4",
     related_entity_id: "invite-1",
     action_type: "take_action",
-    action_url: "/app/bookings",
+    action_url: "/bookings",
     action_label: "Respond",
     related_user: {
       id: "user-4",
@@ -124,7 +124,7 @@ const sampleNotifications: Notification[] = [
     created_at: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
     related_user_id: "user-5",
     action_type: "view_profile",
-    action_url: "/app/profile/user-5",
+    action_url: "/profile/user-5",
     action_label: "Say Hello",
     related_user: {
       id: "user-5",
@@ -296,7 +296,7 @@ export default function NotificationsPage() {
                 {/* Left column: Avatar with time underneath */}
                 <div className="flex flex-col items-center flex-shrink-0">
                   {notification.related_user ? (
-                    <Link href={`/app/discover/${notification.related_user.id}`} onClick={(e) => e.stopPropagation()}>
+                    <Link href={`/discover/${notification.related_user.id}`} onClick={(e) => e.stopPropagation()}>
                       <img
                         src={notification.related_user.avatar_url || "/placeholder.svg?height=40&width=40&query=avatar"}
                         alt={notification.related_user.display_name || notification.related_user.username}

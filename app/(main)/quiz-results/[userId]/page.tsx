@@ -228,7 +228,7 @@ export default function QuizResultsPage() {
         )}
 
         <Button
-          onClick={() => router.push("/app/search")}
+          onClick={() => router.push("/search")}
           className="w-full bg-gradient-to-r from-[var(--dana-pink)] to-[var(--dana-orange)] text-white rounded-full py-6 font-semibold hover:opacity-90 transition-opacity"
         >
           Discover More Connections

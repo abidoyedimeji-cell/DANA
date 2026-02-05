@@ -41,10 +41,10 @@ export default async function SubscriptionSuccessPage() {
         </div>
 
         <div className="space-y-3">
-          <Link href="/app/discover">
+          <Link href="/discover">
             <Button className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white">Start Exploring</Button>
           </Link>
-          <Link href="/app/settings">
+          <Link href="/settings">
             <Button variant="outline" className="w-full bg-transparent">
               Manage Subscription
             </Button>

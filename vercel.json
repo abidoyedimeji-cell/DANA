@@ -1,0 +1,5 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "pnpm shared:build && pnpm build",
+  "installCommand": "pnpm install"
+}
