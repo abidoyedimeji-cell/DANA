@@ -6,9 +6,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   meetingRequestCreateSchema,
   meetingRequestUpdateSchema,
-  type MeetingRequest,
 } from "../validation/schemas";
-import type { MeetingRequestIntent, MeetingRequestStatus } from "../types";
+import type { MeetingRequest, MeetingRequestIntent, MeetingRequestStatus } from "../types";
 
 export interface CreateMeetingRequestInput {
   receiver_id: string;
@@ -49,7 +48,6 @@ export async function createMeetingRequest(
       proposed_time: parsed.data.proposed_time ?? null,
       message: parsed.data.message,
       meeting_window_preference: parsed.data.meeting_window_preference ?? null,
-      duration_minutes: input.duration_minutes ?? 60, // Default 60 minutes
       duration_minutes: input.duration_minutes ?? 60, // Default 60 minutes
     })
     .select()
