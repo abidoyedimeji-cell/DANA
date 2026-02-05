@@ -1,0 +1,7 @@
+packages:
+  - shared
+  - mobile
+
+ignoredBuiltDependencies:
+  - core-js
+  - sharp

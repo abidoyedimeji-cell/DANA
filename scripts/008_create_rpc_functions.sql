@@ -1,0 +1,5 @@
+-- RPC functions are defined in feature-specific scripts:
+-- 013_dana_availability_and_booking.sql: get_dana_intersection, create_dana_hold, confirm_dana_booking, mark_inviter_paid, mark_invitee_paid
+-- 014_venue_hours_booking_rules.sql: check_availability
+-- 016_meet_form.sql: meet_form_window_open
+-- 018_booking_swaps.sql: can_swap_booking, execute_booking_swap
