@@ -46,7 +46,7 @@ export default function SplashConfigPage() {
       const { data: profile } = await supabase.from("profiles").select("user_role").eq("id", user.id).single()
 
       if (!profile || profile.user_role !== "super_admin") {
-        router.push("/app/profile")
+        router.push("/profile")
         return
       }
 

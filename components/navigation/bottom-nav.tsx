@@ -8,27 +8,27 @@ import { useEffect, useState } from "react"
 
 const navItems = [
   {
-    href: "/app/community",
+    href: "/community",
     label: "Chat",
     icon: MessageCircle,
   },
   {
-    href: "/app",
+    href: "/dashboard",
     label: "Feed",
     isHome: true,
   },
   {
-    href: "/app/spots",
+    href: "/spots",
     label: "Spots",
     icon: MapPin,
   },
   {
-    href: "/app/search",
+    href: "/search",
     label: "Search",
     icon: Search,
   },
   {
-    href: "/app/profile",
+    href: "/profile",
     label: "Profile",
     icon: User,
   },
@@ -68,28 +68,28 @@ export function BottomNav() {
       >
         <div className="flex items-center gap-2 bg-black/90 backdrop-blur-lg rounded-full px-4 py-2 border border-white/20 shadow-lg shadow-black/50">
           <Link
-            href="/app"
+            href="/dashboard"
             className={cn(
               "w-10 h-10 rounded-full flex items-center justify-center transition-all",
-              pathname === "/app" ? "bg-[#FF6B35]" : "bg-white/10 hover:bg-white/20",
+              pathname === "/dashboard" ? "bg-[#FF6B35]" : "bg-white/10 hover:bg-white/20",
             )}
           >
             <Home className="w-5 h-5 text-white" />
           </Link>
           <Link
-            href="/app/notifications"
+            href="/notifications"
             className={cn(
               "w-10 h-10 rounded-full flex items-center justify-center transition-all",
-              pathname === "/app/notifications" ? "bg-[#FF6B35]" : "bg-white/10 hover:bg-white/20",
+              pathname === "/notifications" ? "bg-[#FF6B35]" : "bg-white/10 hover:bg-white/20",
             )}
           >
             <Bell className="w-5 h-5 text-white" />
           </Link>
           <Link
-            href="/app/profile"
+            href="/profile"
             className={cn(
               "w-10 h-10 rounded-full flex items-center justify-center transition-all",
-              pathname.startsWith("/app/profile") ? "bg-[#FF6B35]" : "bg-white/10 hover:bg-white/20",
+              pathname.startsWith("/profile") ? "bg-[#FF6B35]" : "bg-white/10 hover:bg-white/20",
             )}
           >
             <User className="w-5 h-5 text-white" />
@@ -105,7 +105,7 @@ export function BottomNav() {
       >
         <div className="flex items-center justify-around h-16 max-w-lg mx-auto px-2">
           {navItems.map((item) => {
-            const isActive = item.isHome ? pathname === "/app" : pathname.startsWith(item.href)
+            const isActive = item.isHome ? pathname === "/dashboard" : pathname.startsWith(item.href)
 
             if (item.isHome) {
               return (

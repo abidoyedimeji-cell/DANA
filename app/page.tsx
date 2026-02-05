@@ -18,7 +18,7 @@ export default function Home() {
         if (!seen) {
           setShowExplainer(true)
         } else {
-          router.push("/app")
+          router.push("/dashboard")
         }
       }
     }

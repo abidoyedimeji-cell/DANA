@@ -25,7 +25,7 @@ export async function sendConnectionRequest(requesterId: string, recipientId: st
     related_user_id: requesterId,
   })
 
-  revalidatePath("/app/search")
+  revalidatePath("/search")
   return { success: true }
 }
 
@@ -63,7 +63,7 @@ export async function acceptConnectionRequest(connectionId: string) {
     related_user_id: connection.recipient_id,
   })
 
-  revalidatePath("/app/community")
+  revalidatePath("/community")
   return { success: true }
 }
 
@@ -83,7 +83,7 @@ export async function declineConnectionRequest(connectionId: string) {
     return { error: error.message }
   }
 
-  revalidatePath("/app/community")
+  revalidatePath("/community")
   return { success: true }
 }
 

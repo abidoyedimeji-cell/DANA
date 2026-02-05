@@ -61,7 +61,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         </nav>
         <div className="p-4 border-t border-white/10">
           <Link
-            href="/app"
+            href="/dashboard"
             className="flex items-center gap-2 text-white/60 hover:text-white text-sm"
           >
             <ArrowLeft className="w-4 h-4" />

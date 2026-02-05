@@ -42,7 +42,7 @@ export function LoginForm({ onToggle }: LoginFormProps) {
 
       if (signInError) throw signInError
 
-      router.push("/app")
+      router.push("/dashboard")
     } catch (err) {
       console.error("[v0] Login error:", err)
       setError(err instanceof Error ? err.message : "Failed to sign in")

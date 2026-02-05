@@ -10,7 +10,7 @@
     "start": "next start",
     "mobile": "pnpm --filter mobile start",
     "mobile:start": "pnpm --filter mobile exec expo start --clear",
-    "shared:build": "pnpm --filter shared build",
+    "shared:build": "pnpm exec tsc --project shared/tsconfig.json",
     "setup": "pnpm install && pnpm shared:build && pnpm --filter mobile install",
     "clean": "node scripts/clean.js",
     "type-check": "turbo run type-check",
@@ -102,9 +102,6 @@
     "typescript": "^5"
   },
   "pnpm": {
-    "onlyBuiltDependencies": [
-      "sharp",
-      "next"
-    ]
+    "onlyBuiltDependencies": ["sharp", "next"]
   }
 }

@@ -71,10 +71,10 @@ export function SignupForm({ onToggle }: SignupFormProps) {
 
     try {
       if (!formData.firstName?.trim()) throw new Error("First name is required")
-      if (!formData.username?.trim()) throw new Error("Username is required")
-      if (formData.username.length < 3) throw new Error("Username must be at least 3 characters")
+      if (!formData.username?.trim()) throw new Error("Nickname is required")
+      if (formData.username.length < 3) throw new Error("Nickname must be at least 3 characters")
       if (!/^[a-zA-Z0-9_]+$/.test(formData.username))
-        throw new Error("Username can only contain letters, numbers, and underscores")
+        throw new Error("Nickname can only contain letters, numbers, and underscores")
       if (!formData.gender) throw new Error("Gender is required")
       if (!formData.email?.trim()) throw new Error("Email is required")
       if (!formData.email.includes("@")) throw new Error("Valid email is required")
@@ -215,18 +215,18 @@ export function SignupForm({ onToggle }: SignupFormProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="username">Username</Label>
+            <Label htmlFor="username">Nickname</Label>
             <Input
               id="username"
               type="text"
-              placeholder="Choose a unique username"
+              placeholder="Choose a nickname"
               value={formData.username}
               onChange={(e) => setFormData({ ...formData, username: e.target.value })}
               disabled={isLoading}
               required
               minLength={3}
               pattern="[a-zA-Z0-9_]+"
-              title="Username can only contain letters, numbers, and underscores"
+              title="Nickname can only contain letters, numbers, and underscores"
               className="border-white"
             />
             <p className="text-xs text-muted-foreground">3+ characters, letters, numbers, and underscores only</p>

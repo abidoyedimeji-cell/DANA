@@ -24,7 +24,7 @@ export async function checkAdmin() {
     .single()
 
   if (profileError || !profile || !isAdminRole(profile.user_role)) {
-    redirect("/app/profile")
+    redirect("/profile")
   }
 
   return { user, profile }
@@ -50,7 +50,7 @@ export async function checkSuperAdmin() {
     .single()
 
   if (profileError || !profile || profile.user_role !== "super_admin") {
-    redirect("/app/profile")
+    redirect("/profile")
   }
 
   return { user, profile }

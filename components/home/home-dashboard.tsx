@@ -244,7 +244,7 @@ export default function HomeDashboard() {
 
           {user ? (
             <div className="flex gap-3 mt-8">
-              <Link href="/app/profile">
+              <Link href="/profile">
                 <Button
                   size="lg"
                   className="bg-[var(--dana-yellow)] text-black hover:bg-[var(--dana-gold)] font-semibold rounded-full px-8"
@@ -276,7 +276,7 @@ export default function HomeDashboard() {
       <div className="px-4 py-6">
         <div className="space-y-3">
           <Link
-            href="/app/community"
+            href="/community"
             className="bg-white/5 border border-white/10 rounded-2xl p-4 flex items-center gap-4 hover:bg-white/10 transition-colors"
           >
             <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[var(--dana-pink)] to-[var(--dana-pink)]/80 flex items-center justify-center flex-shrink-0">
@@ -289,7 +289,7 @@ export default function HomeDashboard() {
           </Link>
 
           <Link
-            href="/app/spots"
+            href="/spots"
             className="bg-white/5 border border-white/10 rounded-2xl p-4 flex items-center gap-4 hover:bg-white/10 transition-colors"
           >
             <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[var(--dana-orange)] to-[var(--dana-orange)]/80 flex items-center justify-center flex-shrink-0">
@@ -302,7 +302,7 @@ export default function HomeDashboard() {
           </Link>
 
           <Link
-            href="/app/search"
+            href="/search"
             className="bg-white/5 border border-white/10 rounded-2xl p-4 flex items-center gap-4 hover:bg-white/10 transition-colors"
           >
             <div className="w-14 h-14 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center flex-shrink-0">
@@ -315,7 +315,7 @@ export default function HomeDashboard() {
           </Link>
 
           <Link
-            href="/app/notifications"
+            href="/notifications"
             className="bg-white/5 border border-white/10 rounded-2xl p-4 flex items-center gap-4 hover:bg-white/10 transition-colors"
           >
             <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[var(--dana-yellow)] to-[var(--dana-gold)] flex items-center justify-center flex-shrink-0">
@@ -336,7 +336,7 @@ export default function HomeDashboard() {
             {recommendedVenues.map((venue) => (
               <Link
                 key={venue.id}
-                href={`/app/spots`}
+                href={`/spots`}
                 className="bg-white/5 border border-white/10 rounded-2xl p-4 hover:bg-white/10 transition-colors block relative"
               >
                 {venue.promo_text && (
@@ -377,7 +377,7 @@ export default function HomeDashboard() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-white font-bold text-lg">Members You Might Like</h2>
             <Link
-              href="/app/search"
+              href="/search"
               className="text-[var(--dana-pink)] text-sm font-medium flex items-center gap-1 hover:gap-2 transition-all"
             >
               See all
@@ -442,7 +442,7 @@ export default function HomeDashboard() {
                           </p>
                           <Button
                             className="bg-white text-black hover:bg-white/90 rounded-full px-5 text-sm h-9"
-                            onClick={() => router.push("/app/spots")}
+                            onClick={() => router.push("/spots")}
                           >
                             View Deal
                           </Button>
@@ -494,7 +494,7 @@ export default function HomeDashboard() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-white font-bold text-lg">Suggested New Connections</h2>
             <Link
-              href="/app/search"
+              href="/search"
               className="text-[var(--dana-pink)] text-sm font-medium flex items-center gap-1 hover:gap-2 transition-all"
             >
               See all

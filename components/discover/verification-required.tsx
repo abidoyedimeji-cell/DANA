@@ -92,7 +92,7 @@ export function VerificationRequired() {
           <Button
             variant="outline"
             className="w-full justify-start bg-transparent"
-            onClick={() => router.push("/app/profile")}
+            onClick={() => router.push("/profile")}
           >
             <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path
@@ -106,7 +106,7 @@ export function VerificationRequired() {
           <Button
             variant="outline"
             className="w-full justify-start bg-transparent"
-            onClick={() => router.push("/app/spots")}
+            onClick={() => router.push("/spots")}
           >
             <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />

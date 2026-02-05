@@ -16,7 +16,7 @@ export function SocialSignup() {
     localStorage.setItem("signupMethod", provider.toLowerCase())
 
     setTimeout(() => {
-      window.location.replace("/app")
+      window.location.replace("/dashboard")
     }, 100)
   }
 

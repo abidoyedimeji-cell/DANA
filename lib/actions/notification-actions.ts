@@ -34,7 +34,7 @@ export async function markNotificationAsRead(notificationId: string) {
     return { error: error.message }
   }
 
-  revalidatePath("/app/community")
+  revalidatePath("/community")
   return { success: true }
 }
 
@@ -48,7 +48,7 @@ export async function markAllNotificationsAsRead(userId: string) {
     return { error: error.message }
   }
 
-  revalidatePath("/app/community")
+  revalidatePath("/community")
   return { success: true }
 }
 

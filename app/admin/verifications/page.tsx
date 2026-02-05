@@ -43,7 +43,7 @@ export default function VerificationsPage() {
       const { data: profile } = await supabase.from("profiles").select("user_role").eq("id", user.id).single()
 
       if (!profile || profile.user_role !== "super_admin") {
-        router.push("/app/profile")
+        router.push("/profile")
         return
       }
 

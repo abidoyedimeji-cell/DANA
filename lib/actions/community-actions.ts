@@ -82,7 +82,7 @@ export async function createPost(
   }
 
   console.log("[v0] Post created successfully")
-  revalidatePath("/app/community")
+  revalidatePath("/community")
   return { success: true }
 }
 
@@ -135,7 +135,7 @@ export async function likePost(postId: string, userId: string) {
     }
   }
 
-  revalidatePath("/app/community")
+  revalidatePath("/community")
   return { success: true }
 }
 
@@ -170,7 +170,7 @@ export async function addComment(postId: string, authorId: string, content: stri
     })
   }
 
-  revalidatePath("/app/community")
+  revalidatePath("/community")
   return { success: true }
 }
 

@@ -54,7 +54,7 @@ export async function updateProfile(
     return { error: error.message }
   }
 
-  revalidatePath("/app/profile")
+  revalidatePath("/profile")
   return { success: true }
 }
 
@@ -73,7 +73,7 @@ export async function addProfilePhoto(userId: string, photoUrl: string, displayO
     return { error: error.message }
   }
 
-  revalidatePath("/app/profile")
+  revalidatePath("/profile")
   return { success: true }
 }
 
@@ -87,7 +87,7 @@ export async function deleteProfilePhoto(photoId: string) {
     return { error: error.message }
   }
 
-  revalidatePath("/app/profile")
+  revalidatePath("/profile")
   return { success: true }
 }
 
@@ -116,7 +116,7 @@ export async function updatePreferences(
     return { error: error.message }
   }
 
-  revalidatePath("/app/profile")
+  revalidatePath("/profile")
   return { success: true }
 }
 
@@ -135,7 +135,7 @@ export async function addQuizQuestion(userId: string, question: string, displayO
     return { error: error.message }
   }
 
-  revalidatePath("/app/profile")
+  revalidatePath("/profile")
   return { success: true }
 }
 
@@ -149,6 +149,6 @@ export async function deleteQuizQuestion(questionId: string) {
     return { error: error.message }
   }
 
-  revalidatePath("/app/profile")
+  revalidatePath("/profile")
   return { success: true }
 }

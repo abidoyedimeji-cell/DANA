@@ -339,7 +339,7 @@ function PostCard({ post, onLike }: { post: any; onLike: (id: string) => void })
           <span className="text-white text-xs font-semibold mt-1">{post.likes_count || 0}</span>
         </button>
 
-        <Link href={`/app/community/${post.id}`} className="flex flex-col items-center">
+        <Link href={`/community/${post.id}`} className="flex flex-col items-center">
           <div className="w-12 h-12 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center">
             <MessageCircle className="w-6 h-6 text-white" />
           </div>
@@ -398,7 +398,7 @@ function VenueCard({ venue }: { venue: any }) {
               </div>
             </div>
 
-            <Link href="/app/spots">
+            <Link href="/spots">
               <Button
                 size="lg"
                 className="w-full bg-[var(--dana-yellow)] text-black hover:bg-[var(--dana-gold)] font-bold rounded-full"

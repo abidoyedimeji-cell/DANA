@@ -164,6 +164,7 @@ export const meetingRequestCreateSchema = z.object({
   proposed_time: z.string().datetime("Invalid date time").nullable().optional(),
   message: z.string().trim().max(300, "Message too long").min(1, "Message required"),
   meeting_window_preference: z.string().trim().max(100).optional(),
+  duration_minutes: z.number().int().min(15).max(480).optional(),
 });
 
 export const meetingRequestUpdateSchema = z.object({

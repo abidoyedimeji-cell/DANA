@@ -80,7 +80,7 @@ export function VerificationComplete() {
         >
           Complete Your Profile
         </Button>
-        <Button onClick={() => handleNavigate("/app")} variant="outline" size="lg" className="w-full">
+        <Button onClick={() => handleNavigate("/dashboard")} variant="outline" size="lg" className="w-full">
           Go to App
         </Button>
       </div>

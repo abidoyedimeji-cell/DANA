@@ -30,7 +30,7 @@ export default function VerifyPage() {
   const handleSkip = () => {
     localStorage.setItem("isVerified", "false")
     console.log("[v0] Verify: skipping, navigating to /app")
-    window.location.href = "/app"
+    window.location.href = "/dashboard"
   }
 
   const handleQuickVerify = () => {

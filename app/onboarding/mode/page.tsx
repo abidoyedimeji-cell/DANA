@@ -63,7 +63,7 @@ export default function ModeSelectionPage() {
   const handleContinue = () => {
     if (selectedMode) {
       setProfileMode(selectedMode)
-      router.push("/app")
+      router.push("/dashboard")
     }
   }
 
